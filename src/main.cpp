@@ -1,0 +1,75 @@
+#include <Arduino.h>
+#include <math.h>
+#include <Adafruit_BNO08x.h>
+
+#define BNO08X_RESET -1
+
+Adafruit_BNO08x bno08x(BNO08X_RESET);
+sh2_SensorValue_t sensorValue;
+
+float maxTilt = 30.0;
+float deadZone = 3.0;
+
+void setReports() {
+  if (!bno08x.enableReport(SH2_ACCELEROMETER)) {
+    Serial.println("Could not enable accelerometer");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  while (!Serial) {
+    delay(10);
+  }
+
+  if (!bno08x.begin_I2C()) {
+    Serial.println("Failed to find BNO08x");
+
+    while (1) {
+      delay(10);
+    }
+  }
+
+  Serial.println("BNO08x found!");
+  setReports();
+}
+
+void loop() {
+  delay(10);
+
+  if (bno08x.wasReset()) {
+    setReports();
+  }
+
+  if (!bno08x.getSensorEvent(&sensorValue)) {
+    return;
+  }
+
+  if (sensorValue.sensorId != SH2_ACCELEROMETER) {
+    return;
+  }
+
+  float x = sensorValue.un.accelerometer.x;
+  float y = sensorValue.un.accelerometer.y;
+  float z = sensorValue.un.accelerometer.z;
+
+  float tiltX = atan2(x, sqrt(y * y + z * z)) * RAD_TO_DEG;
+  float tiltY = atan2(y, sqrt(x * x + z * z)) * RAD_TO_DEG;
+
+  if (abs(tiltX) < deadZone) {
+    tiltX = 0;
+  }
+
+  if (abs(tiltY) < deadZone) {
+    tiltY = 0;
+  }
+
+  int joystickX = constrain(tiltX / maxTilt * 100, -100, 100);
+  int joystickY = constrain(tiltY / maxTilt * 100, -100, 100);
+
+  Serial.print("X: ");
+  Serial.print(joystickX);
+  Serial.print("  Y: ");
+  Serial.println(joystickY);
+}
