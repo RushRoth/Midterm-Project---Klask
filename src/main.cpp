@@ -18,10 +18,9 @@ void setReports() {
 
 void setup() {
   Serial.begin(115200);
+  delay(2000);
 
-  while (!Serial) {
-    delay(10);
-  }
+  Serial.println("Starting accelerometer...");
 
   if (!bno08x.begin_I2C()) {
     Serial.println("Failed to find BNO08x");
